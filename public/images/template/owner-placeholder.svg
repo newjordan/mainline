@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 640" role="img" aria-labelledby="title desc">
+  <title id="title">Owner Placeholder Portrait</title>
+  <desc id="desc">Generic owner portrait placeholder image.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e6edf4"/>
+      <stop offset="100%" stop-color="#cfdceb"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="640" fill="url(#bg)"/>
+  <circle cx="240" cy="220" r="92" fill="#8ca4ba"/>
+  <path d="M120 520c0-86 54-148 120-148s120 62 120 148" fill="#8ca4ba"/>
+  <text x="240" y="596" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#1c3549">Replace with owner photo</text>
+</svg>

@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a reproducible bug in MainLine.
+title: '[Bug]: '
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MainLine.
+
+        Please do **not** use this form for security vulnerabilities or leaked secrets.
+        Follow `SECURITY.md` instead.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A short description of the bug.
+      placeholder: When I..., MainLine...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Share the smallest reliable repro you can.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Where did you see it?
+      options:
+        - Demo mode
+        - Local live mode
+        - Hosted deployment
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: area
+    attributes:
+      label: Affected area
+      description: Route, component, script, or integration if known.
+      placeholder: app/demo/invoices, Twilio webhook, setup wizard...
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Redact secrets, tokens, and real customer data before posting.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues first.
+          required: true
+        - label: I removed or redacted secrets and sensitive customer data.
+          required: true
+        - label: This is not a private security report.
+          required: true

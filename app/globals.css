@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base */
+    --background: 214 44% 98%;
+    --foreground: 220 42% 16%;
+
+    /* Cards & Surfaces */
+    --card: 0 0% 100%;
+    --card-foreground: 220 42% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 42% 16%;
+
+    /* MainLine Navy */
+    --primary: 218 57% 21%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary Surface */
+    --secondary: 216 35% 32%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted */
+    --muted: 214 32% 93%;
+    --muted-foreground: 216 22% 36%;
+
+    /* MainLine Orange */
+    --accent: 33 100% 50%;
+    --accent-foreground: 220 42% 14%;
+
+    /* Destructive */
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 216 29% 83%;
+    --input: 216 29% 83%;
+    --ring: 33 100% 50%;
+
+    --chart-1: 33 100% 50%;
+    --chart-2: 218 57% 30%;
+    --chart-3: 201 72% 40%;
+    --chart-4: 171 68% 36%;
+    --chart-5: 26 93% 56%;
+
+    --radius: 0.75rem;
+  }
+  .dark {
+    --background: 221 39% 8%;
+    --foreground: 210 33% 96%;
+
+    --card: 221 34% 12%;
+    --card-foreground: 210 33% 96%;
+    --popover: 221 34% 12%;
+    --popover-foreground: 210 33% 96%;
+
+    --primary: 33 100% 55%;
+    --primary-foreground: 221 39% 10%;
+
+    --secondary: 217 32% 26%;
+    --secondary-foreground: 210 33% 96%;
+
+    --muted: 219 27% 18%;
+    --muted-foreground: 214 16% 70%;
+
+    --accent: 33 100% 55%;
+    --accent-foreground: 221 39% 10%;
+
+    --destructive: 0 68% 46%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 218 23% 24%;
+    --input: 218 23% 24%;
+    --ring: 33 100% 55%;
+
+    --chart-1: 33 100% 55%;
+    --chart-2: 210 77% 61%;
+    --chart-3: 190 85% 48%;
+    --chart-4: 171 76% 42%;
+    --chart-5: 22 96% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(circle at top right, hsl(var(--accent) / 0.16) 0%, transparent 42%),
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08) 0%, transparent 50%);
+  }
+}
+
+/* Safe area utilities for iOS devices with home indicator */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Hide developer/debug chrome during automated screenshot capture runs only. */
+body.screenshot-capture nextjs-portal {
+  display: none !important;
+}
+
+body.screenshot-capture:has(main[data-demo-document-preview]) [data-demo-shell-header],
+body.screenshot-capture:has(main[data-demo-document-preview]) [data-demo-shell-nav] {
+  display: none !important;
+}
+
+body.screenshot-capture:has(main[data-demo-document-preview]) [data-demo-shell-content] {
+  padding-bottom: 0 !important;
+}

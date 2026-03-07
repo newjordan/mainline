@@ -1,0 +1,50 @@
+{
+  "companyName": "Mainline Services",
+  "companyShortName": "Mainline",
+  "ownerDisplayName": "Handy Hank",
+  "industryDescription": "Field Service & Repairs",
+  "serviceArea": {
+    "label": "the greater metro area",
+    "city": "Metro City",
+    "region": "US",
+    "country": "US"
+  },
+  "marketing": {
+    "heroTitle": "Reliable service from one accountable operator.",
+    "heroSubtitle": "Independent operator. Straight answers. No upsell scripts.",
+    "tagline": "If it breaks, we make it work.",
+    "metaTitle": "Mainline Services | Local Field Service & Repairs",
+    "metaDescription": "Technician owned and operated — honest service, no corporate overhead. Text or call for fast, reliable field service and repairs.",
+    "callToActionTitle": "Ready to get it fixed the right way?"
+  },
+  "assets": {
+    "logoIconSrc": "/images/mainline/logo-icon.png",
+    "logoHorizontalSrc": "/images/mainline/logo-horizontal.png",
+    "logoStackedSrc": "/images/mainline/logo-stacked.png",
+    "heroPhotoSrc": "/images/hero_shot.png",
+    "paymentSuccessImageSrc": "/images/template/payment-success.svg"
+  },
+  "sms": {
+    "programName": "Mainline Services SMS",
+    "optInIntro": "Thanks for reaching out to {companyName}. Tell us what service issue you are dealing with and we will help.",
+    "optOutMessage": "You have been unsubscribed from {companyName} texts. Reply START to resubscribe.",
+    "helpIntro": "{companyName} SMS Help",
+    "reviewRequest": "Thanks again for choosing {companyName}. If we earned a 5-star experience, would you leave a quick Google review?",
+    "quotePrefix": "{companyName} Quote",
+    "invoiceThanks": "Thank you for choosing {companyName}!",
+    "acceptedFollowup": "We'll contact you to schedule your service."
+  },
+  "operations": {
+    "adminActorId": "admin_user"
+  },
+  "defaults": {
+    "websiteUrl": "https://example.com",
+    "smsPhoneE164": "+15551234567",
+    "callPhoneE164": "+15557654321",
+    "adminPhoneE164": "+15559876543",
+    "allowedEmails": [
+      "owner@example.com",
+      "admin@example.com"
+    ]
+  }
+}

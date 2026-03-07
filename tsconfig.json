@@ -1,0 +1,72 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    ".next-screenshots-mobile/types/**/*.ts",
+    ".next-screenshots-mobile/dev/types/**/*.ts",
+    ".next-screenshots-mobile-*/types/**/*.ts",
+    ".next-screenshots-mobile-*/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T19-44-42-788Z-80297/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T19-44-42-788Z-80297/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T20-08-32-142Z-82734/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T20-08-32-142Z-82734/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T20-39-37-161Z-84677/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T20-39-37-161Z-84677/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T20-41-58-784Z-85115/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T20-41-58-784Z-85115/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T20-58-00-846Z-86710/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T20-58-00-846Z-86710/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-03-40-425Z-88054/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-03-40-425Z-88054/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-06-01-367Z-88476/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-06-01-367Z-88476/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-13-28-072Z-89312/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-13-28-072Z-89312/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-15-15-450Z-89716/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-15-15-450Z-89716/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-34-39-005Z-90661/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-34-39-005Z-90661/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-36-19-593Z-91055/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T21-36-19-593Z-91055/dev/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-48-49-922Z-92098/types/**/*.ts",
+    ".next-screenshots-desktop-2026-03-05T21-48-49-922Z-92098/dev/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T22-13-26-488Z-92953/types/**/*.ts",
+    ".next-screenshots-mobile-2026-03-05T22-13-26-488Z-92953/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

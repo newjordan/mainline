@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest an improvement for MainLine.
+title: '[Feature]: '
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea.
+
+        Please keep requests specific to a real workflow problem, especially around customer communication,
+        quoting, invoicing, search, and setup.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: It is hard to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      placeholder: MainLine should...
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Who benefits and when?
+      description: Describe the user, operator, or business workflow.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds, competing approaches, or prior patterns.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and open PRs first.
+          required: true
+        - label: This request is not a private security concern.
+          required: true

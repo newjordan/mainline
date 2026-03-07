@@ -1,0 +1,12 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+// Re-export hasEnvVars from env module for backward compatibility
+export const hasEnvVars =
+  !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+  !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+  !!process.env.NEXT_PUBLIC_SITE_URL;

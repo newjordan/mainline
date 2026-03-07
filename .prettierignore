@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+build
+*.md
+package-lock.json
+_bmad
+_bmad-output
+.agent
+.augment
+.claude

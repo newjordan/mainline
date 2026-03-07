@@ -1,0 +1,57 @@
+{
+  "companyName": "Acme Field Service",
+  "companyShortName": "Acme",
+  "ownerDisplayName": "Your Name",
+  "industryDescription": "Field Service & Repairs",
+  "serviceArea": {
+    "label": "North Metro and nearby towns",
+    "city": "Minneapolis",
+    "region": "MN",
+    "country": "US"
+  },
+  "marketing": {
+    "heroTitle": "Honest service from a local operator.",
+    "heroSubtitle": "No call center handoffs. No upsell scripts. Clear communication.",
+    "tagline": "Real work, done right.",
+    "metaTitle": "Acme Field Service | Local Field Service & Repairs",
+    "metaDescription": "Operations and customer communication system for local field service businesses.",
+    "callToActionTitle": "Need service now?"
+  },
+  "assets": {
+    "logoIconSrc": "/images/mainline/logo-icon.png",
+    "logoHorizontalSrc": "/images/mainline/logo-horizontal.png",
+    "logoStackedSrc": "/images/mainline/logo-stacked.png",
+    "heroPhotoSrc": "/images/template/owner-placeholder.svg",
+    "paymentSuccessImageSrc": "/images/template/payment-success.svg"
+  },
+  "sms": {
+    "programName": "Acme Service SMS",
+    "optInIntro": "Thanks for contacting {companyName}. Tell us what is going on and we will help.",
+    "optOutMessage": "You have been unsubscribed from {companyName} texts. Reply START to resubscribe.",
+    "helpIntro": "{companyName} SMS Help",
+    "reviewRequest": "Thanks again for choosing {companyName}. If we earned a 5-star experience, would you leave a quick Google review?",
+    "quotePrefix": "{companyName} Quote",
+    "invoiceThanks": "Thank you for choosing {companyName}!",
+    "acceptedFollowup": "We'll contact you to schedule your service."
+  },
+  "operations": {
+    "adminActorId": "admin_user"
+  },
+  "defaults": {
+    "websiteUrl": "https://example.com",
+    "smsPhoneE164": "+15551234567",
+    "callPhoneE164": "+15557654321",
+    "adminPhoneE164": "+15559876543",
+    "allowedEmails": [
+      "owner@example.com",
+      "admin@example.com"
+    ]
+  },
+  "assetImports": {
+    "logoIconFile": "./my-assets/logo-icon.svg",
+    "logoHorizontalFile": "./my-assets/logo-horizontal.svg",
+    "logoStackedFile": "./my-assets/logo-stacked.svg",
+    "heroPhotoFile": "./my-assets/owner-photo.jpg",
+    "paymentSuccessFile": "./my-assets/payment-success.png"
+  }
+}
