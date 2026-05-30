@@ -17,18 +17,10 @@ const nextConfig: NextConfig = {
 
   async headers() {
     return [
+      // Baseline hardening for every route.
       {
         source: '/(.*)',
         headers: [
-          // Allow ONLY the webx portfolio OS (and local dev) to iframe this
-          // app; every other origin is still refused (clickjacking defense).
-          // frame-ancestors supersedes X-Frame-Options, which has no
-          // "allow one external origin" value.
-          {
-            key: 'Content-Security-Policy',
-            value:
-              "frame-ancestors 'self' https://webx-plum.vercel.app http://localhost:8123",
-          },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           {
             key: 'Referrer-Policy',
@@ -37,6 +29,25 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+        ],
+      },
+      // Clickjacking defense on every route EXCEPT the backend-free /demo
+      // showcase. Login, dashboard, quotes, invoices, payments all keep DENY.
+      {
+        source: '/((?!demo).*)',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
+      // /demo is a self-contained, data-free demo. Allow ONLY the webx
+      // portfolio OS (and local dev) to iframe it; no X-Frame-Options here so
+      // the CSP frame-ancestors allowlist governs framing for this route.
+      {
+        source: '/demo/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "frame-ancestors 'self' https://webx-plum.vercel.app http://localhost:8123",
           },
         ],
       },
