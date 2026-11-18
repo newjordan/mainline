@@ -15,6 +15,12 @@ const originalEnv = {
 
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
 
+// NODE_ENV is typed as readonly once Next.js types are loaded, so tests
+// assign it through a writable view of the same object.
+function setNodeEnv(value: string) {
+  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+}
+
 function setWindow(value: object | undefined) {
   if (value === undefined) {
     delete (globalThis as { window?: object }).window;
@@ -47,7 +53,7 @@ afterEach(() => {
 describe('isDemoModeEnabled', () => {
   it('enables demo mode from an explicit server flag', () => {
     setWindow(undefined);
-    process.env.NODE_ENV = 'production';
+    setNodeEnv('production');
     process.env.DEMO_MODE = 'true';
 
     assert.equal(isDemoModeEnabled(), true);
@@ -55,7 +61,7 @@ describe('isDemoModeEnabled', () => {
 
   it('enables demo mode from an explicit public flag in the browser', () => {
     setWindow({ location: { pathname: '/demo/login' } });
-    process.env.NODE_ENV = 'production';
+    setNodeEnv('production');
     process.env.NEXT_PUBLIC_DEMO_MODE = 'true';
 
     assert.equal(isDemoModeEnabled(), true);
@@ -63,7 +69,7 @@ describe('isDemoModeEnabled', () => {
 
   it('falls back to demo mode in the browser when public env is missing', () => {
     setWindow({ location: { pathname: '/demo/login' } });
-    process.env.NODE_ENV = 'production';
+    setNodeEnv('production');
     delete process.env.DEMO_MODE;
     delete process.env.NEXT_PUBLIC_DEMO_MODE;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -75,7 +81,7 @@ describe('isDemoModeEnabled', () => {
 
   it('does not silently enable demo mode on the server in production', () => {
     setWindow(undefined);
-    process.env.NODE_ENV = 'production';
+    setNodeEnv('production');
     delete process.env.DEMO_MODE;
     delete process.env.NEXT_PUBLIC_DEMO_MODE;
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -24,9 +24,10 @@ export async function createClient() {
               cookieStore.set(name, value, mergeHardenedCookieOptions(options))
             );
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have proxy refreshing
-            // user sessions.
+            // The `setAll` method was called from a Server Component, where
+            // response headers cannot be set. This can be ignored if you have
+            // proxy refreshing user sessions; the proxy applies the no-cache
+            // headers that come with these cookie writes.
           }
         },
       },

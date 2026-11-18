@@ -2,6 +2,13 @@ export type CaptureMode = 'demo' | 'live';
 
 const TRUTHY = new Set(['1', 'true', 'yes', 'on']);
 
+/**
+ * The subset of `process.env` these validators read. A plain record keeps
+ * them callable with partial env objects in tests; `process.env` satisfies
+ * this shape.
+ */
+export type CaptureEnv = Record<string, string | undefined>;
+
 export type LiveCaptureConfig = {
   adminEmail: string;
   adminPassword: string;
@@ -24,7 +31,7 @@ export function isPlaceholder(value: string | undefined): boolean {
   );
 }
 
-export function resolveCaptureMode(env: NodeJS.ProcessEnv): CaptureMode {
+export function resolveCaptureMode(env: CaptureEnv): CaptureMode {
   const explicitMode = (env.SCREENSHOT_CAPTURE_MODE ?? '').trim().toLowerCase();
 
   if (explicitMode === 'demo' || explicitMode === 'live') {
@@ -40,14 +47,14 @@ export function resolveCaptureMode(env: NodeJS.ProcessEnv): CaptureMode {
   return 'demo';
 }
 
-function parseAllowedEmails(env: NodeJS.ProcessEnv): string[] {
+function parseAllowedEmails(env: CaptureEnv): string[] {
   return (env.ALLOWED_EMAILS ?? '')
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter((email) => email.length > 0);
 }
 
-export function resolveLiveCaptureConfig(env: NodeJS.ProcessEnv): LiveCaptureConfig {
+export function resolveLiveCaptureConfig(env: CaptureEnv): LiveCaptureConfig {
   if (isPlaceholder(env.NEXT_PUBLIC_SUPABASE_URL)) {
     throw new Error('NEXT_PUBLIC_SUPABASE_URL must be set to a real Supabase URL.');
   }

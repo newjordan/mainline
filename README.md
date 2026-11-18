@@ -120,7 +120,7 @@ That's it. No Supabase, Twilio, or payment keys needed.
 | :--- | :--- |
 | `npm run dev` | Start the development server |
 | `npm run demo` | Start the local demo experience |
-| `npm run build` | Create a production build |
+| `npm run build` | Create a production build (requires live env vars, or set `DEMO_MODE=true`) |
 | `npm run lint` | Run ESLint |
 | `npm test` | Run the test suite |
 | `npm run wizard:setup` | Guided setup flow |
