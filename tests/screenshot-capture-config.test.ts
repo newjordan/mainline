@@ -4,7 +4,7 @@ import {
   isPlaceholder,
   resolveCaptureMode,
   resolveLiveCaptureConfig,
-} from '../lib/screenshot/capture-config.ts';
+} from '@/lib/screenshot/capture-config';
 
 describe('resolveCaptureMode', () => {
   it('defaults to demo mode when SCREENSHOT_CAPTURE_MODE is unset', () => {

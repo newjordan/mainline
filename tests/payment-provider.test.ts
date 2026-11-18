@@ -4,7 +4,7 @@ import {
   normalizePaymentProvider,
   parsePaymentProvider,
   resolvePaymentProvider,
-} from '../lib/payments/provider.ts';
+} from '@/lib/payments/provider';
 
 describe('payment provider helpers', () => {
   it('parses explicit providers', () => {

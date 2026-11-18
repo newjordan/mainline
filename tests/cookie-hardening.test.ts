@@ -2,23 +2,29 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { mergeHardenedCookieOptions } from '@/lib/supabase/cookie-options';
 
+// NODE_ENV is typed as readonly once Next.js types are loaded, so tests
+// mutate it through a writable view of the same object.
+type WritableEnv = Record<string, string | undefined>;
+
+function setNodeEnv(value: string | undefined) {
+  const env = process.env as WritableEnv;
+
+  if (value === undefined) {
+    delete env.NODE_ENV;
+  } else {
+    env.NODE_ENV = value;
+  }
+}
+
 function withNodeEnv(value: string | undefined, callback: () => void) {
   const previousNodeEnv = process.env.NODE_ENV;
 
-  if (value === undefined) {
-    delete process.env.NODE_ENV;
-  } else {
-    process.env.NODE_ENV = value;
-  }
+  setNodeEnv(value);
 
   try {
     callback();
   } finally {
-    if (previousNodeEnv === undefined) {
-      delete process.env.NODE_ENV;
-    } else {
-      process.env.NODE_ENV = previousNodeEnv;
-    }
+    setNodeEnv(previousNodeEnv);
   }
 }
 

@@ -13,6 +13,11 @@
 
 import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/database.types';
+
+type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
+type QuoteInsert = Database['public']['Tables']['quotes']['Insert'];
+type InvoiceInsert = Database['public']['Tables']['invoices']['Insert'];
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });
@@ -34,13 +39,13 @@ if (!supabaseUrl || !supabaseServiceKey) {
 console.log(`Connecting to: ${supabaseUrl}`);
 console.log(`Using key starting with: ${supabaseServiceKey.slice(0, 15)}...`);
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey);
 
 // =============================================================================
 // Test Data
 // =============================================================================
 
-const customers = [
+const customers: CustomerInsert[] = [
   {
     phone_number: '+15125551001',
     name: 'Customer One',
@@ -74,7 +79,13 @@ const customers = [
 ];
 
 // Conversation templates for each customer
-const conversationTemplates = [
+type ConversationTemplate = {
+  direction: 'inbound' | 'outbound';
+  body: string;
+  hoursAgo: number;
+};
+
+const conversationTemplates: ConversationTemplate[][] = [
   // Customer One - completed job, paid
   [
     { direction: 'inbound', body: 'Hi, one of our systems stopped working this morning. Can you help?', hoursAgo: 72 },
@@ -268,7 +279,7 @@ async function seedQuotes(customerIds: string[]): Promise<string[]> {
     const totalCents = template.line_items.reduce((sum, item) => sum + item.amount_cents, 0);
     const createdAt = new Date(Date.now() - template.daysAgo * 24 * 60 * 60 * 1000);
 
-    const quoteData: Record<string, unknown> = {
+    const quoteData: QuoteInsert = {
       customer_id: customerId,
       description: template.description,
       line_items: template.line_items,
@@ -313,7 +324,7 @@ async function seedInvoices(quoteIds: string[], customerIds: string[]) {
     const createdAt = new Date(Date.now() - template.daysAgo * 24 * 60 * 60 * 1000);
     const sentAt = new Date(createdAt.getTime() + 1 * 60 * 60 * 1000);
 
-    const invoiceData: Record<string, unknown> = {
+    const invoiceData: InvoiceInsert = {
       quote_id: quoteId,
       customer_id: customerId,
       amount_cents: totalCents,

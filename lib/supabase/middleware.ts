@@ -78,7 +78,7 @@ export async function updateSession(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
@@ -91,6 +91,11 @@ export async function updateSession(request: NextRequest) {
               value,
               mergeHardenedCookieOptions(options)
             )
+          );
+          // Auth cookies must never be cached by CDNs or proxies, or one
+          // user's session token can be served to another user.
+          Object.entries(headers).forEach(([key, value]) =>
+            supabaseResponse.headers.set(key, value)
           );
         },
       },
@@ -124,6 +129,12 @@ export async function updateSession(request: NextRequest) {
       supabaseResponse.cookies.getAll().forEach((cookie) => {
         redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
       });
+      // Copy the no-cache headers too, so a cached redirect can't leak the
+      // freshly exchanged session to another user.
+      for (const header of ['cache-control', 'expires', 'pragma']) {
+        const value = supabaseResponse.headers.get(header);
+        if (value) redirectResponse.headers.set(header, value);
+      }
       return redirectResponse;
     }
     // If code exchange fails, continue normally (code may be expired/invalid)
