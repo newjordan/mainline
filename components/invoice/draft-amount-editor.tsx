@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Pencil, Save, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateInvoice } from '@/lib/actions/invoices';
+import { parseAmountToCents } from '@/lib/documents/calculations';
 import { formatCents } from '@/lib/utils/format-currency';
 import { Button } from '@/components/ui/button';
 
@@ -18,12 +19,6 @@ interface DraftAmountEditorProps {
 
 function formatCentsToInput(cents: number): string {
   return (cents / 100).toFixed(2);
-}
-
-function parseAmountToCents(value: string): number {
-  const amount = Number.parseFloat(value);
-  if (!Number.isFinite(amount) || amount <= 0) return 0;
-  return Math.round(amount * 100);
 }
 
 function sanitizeAmountInput(value: string): string {

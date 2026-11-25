@@ -18,7 +18,12 @@ import { createMessage } from '@/lib/actions/messages';
 import { createPaymentLink, isPaymentsDisabledError } from '@/lib/integrations/payments';
 import { sendSMS } from '@/lib/integrations/twilio';
 import { formatCents } from '@/lib/utils/format-currency';
-import { getBusinessProfile, interpolateBusinessText } from '@/lib/config/business-profile';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
+import {
+  getBusinessProfile,
+  getTaxRateBps,
+  interpolateBusinessText,
+} from '@/lib/config/business-profile';
 
 /**
  * Extended result type for send operations that includes SMS delivery status
@@ -534,10 +539,15 @@ async function _updateInvoiceInternal(
     const normalizedLineItems = normalizeInvoiceLineItems(
       validatedUpdates.line_items as unknown as InvoiceLineItem[]
     );
-    const lineItemTotal = normalizedLineItems.reduce(
-      (sum, item) => sum + item.amount_cents,
-      0
-    );
+    let lineItemTotal = 0;
+    try {
+      lineItemTotal = calculateDocumentTotals(
+        normalizedLineItems,
+        getTaxRateBps()
+      ).totalCents;
+    } catch {
+      return { success: false, error: 'Invoice line items are invalid' };
+    }
 
     if (normalizedLineItems.length === 0) {
       return { success: false, error: 'Invoice must have at least one line item' };
@@ -549,7 +559,7 @@ async function _updateInvoiceInternal(
 
     validatedUpdates.line_items = normalizedLineItems;
 
-    // Keep amount in sync whenever line items are updated.
+    // Keep the charged amount in sync with line items plus configured tax.
     validatedUpdates.amount_cents = lineItemTotal;
   }
 
@@ -1279,13 +1289,21 @@ export async function createInvoiceManual(input: {
   }
 
   const normalizedLineItems = normalizeInvoiceLineItems(input.line_items);
-  const lineItemTotal = normalizedLineItems.reduce(
-    (sum, item) => sum + item.amount_cents,
-    0
-  );
   const hasLineItemsInput = Array.isArray(input.line_items);
+  let lineItemTotal = 0;
+  if (hasLineItemsInput) {
+    try {
+      lineItemTotal = calculateDocumentTotals(
+        normalizedLineItems,
+        getTaxRateBps()
+      ).totalCents;
+    } catch {
+      return { success: false, error: 'Invoice line items are invalid' };
+    }
+  }
 
-  // Validate amount (manual amount or computed from line items)
+  // Line items are the source of truth and include configured tax.
+  // A manual amount is used only when the invoice has no line items.
   const finalAmountCents = hasLineItemsInput
     ? lineItemTotal
     : Math.round(input.amount_cents);

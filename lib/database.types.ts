@@ -67,6 +67,21 @@ export type Database = {
         };
         Relationships: [];
       };
+      admin_allowlist: {
+        Row: {
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          email?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       customer_photos: {
         Row: {
           id: string;

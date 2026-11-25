@@ -14,6 +14,8 @@ import {
   sanitizeAmountInput,
   toEditableLineItems,
 } from '@/lib/demo/demo-form-utils';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
 import {
   buildDemoInvoiceDocumentPath,
   buildDemoInvoicesHref,
@@ -50,7 +52,9 @@ export function DemoNewInvoiceForm({
   const finalAmountCents = parseAmountToCents(amountInput);
   const varianceCents = finalAmountCents - quotedAmountCents;
   const manualTotalCents = useMemo(
-    () => manualLineItems.reduce((sum, item) => sum + parseAmountToCents(item.amount_input), 0),
+    () =>
+      calculateDocumentTotals(normalizeEditableLineItems(manualLineItems), getTaxRateBps())
+        .totalCents,
     [manualLineItems]
   );
   const customerLabel = customer?.name || (customer ? formatPhoneNumber(customer.phone_number) : 'Demo customer');

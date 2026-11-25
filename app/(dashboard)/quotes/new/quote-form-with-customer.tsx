@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createQuote } from '@/lib/actions/quotes';
-import { formatCents } from '@/lib/utils/format-currency';
+import { MoneyTotal } from '@/components/documents/money-total';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals, parseAmountToCents } from '@/lib/documents/calculations';
 import { formatPhoneNumber } from '@/lib/utils/format-phone';
 import type { Customer } from '@/lib/database.types';
 import { Input } from '@/components/ui/input';
@@ -70,12 +72,6 @@ export function QuoteFormWithCustomerSelect({
   const [lineItems, setLineItems] = useState<LineItem[]>([
     { description: '', amount_input: '' },
   ]);
-
-  const parseAmountToCents = (value: string): number => {
-    const amount = Number.parseFloat(value);
-    if (!Number.isFinite(amount)) return 0;
-    return Math.round(amount * 100);
-  };
 
   const sanitizeAmountInput = (value: string): string => {
     let sanitized = '';
@@ -149,10 +145,13 @@ export function QuoteFormWithCustomerSelect({
     });
   }, [customerAddressOptions]);
 
-  const totalCents = lineItems.reduce(
-    (sum, item) => sum + parseAmountToCents(item.amount_input),
-    0
-  );
+  const pricedLineItems = lineItems
+    .map((item) => ({
+      description: item.description.trim(),
+      amount_cents: parseAmountToCents(item.amount_input),
+    }))
+    .filter((item) => item.description && item.amount_cents !== 0);
+  const totals = calculateDocumentTotals(pricedLineItems, getTaxRateBps());
 
   const addLineItem = () => {
     setLineItems([...lineItems, { description: '', amount_input: '' }]);
@@ -196,20 +195,14 @@ export function QuoteFormWithCustomerSelect({
       return;
     }
 
-    const validLineItems = lineItems
-      .map((item) => ({
-        description: item.description.trim(),
-        amount_cents: parseAmountToCents(item.amount_input),
-      }))
-      .filter((item) => item.description && item.amount_cents !== 0);
+    const validLineItems = pricedLineItems;
 
     if (validLineItems.length === 0) {
       toast.error('Please add at least one line item with description and non-zero amount');
       return;
     }
 
-    const total = validLineItems.reduce((sum, item) => sum + item.amount_cents, 0);
-    if (total <= 0) {
+    if (totals.totalCents <= 0) {
       toast.error('Quote total must be greater than $0.00');
       return;
     }
@@ -223,7 +216,7 @@ export function QuoteFormWithCustomerSelect({
         service_address:
           selectedServiceAddress || customerAddressOptions[0] || undefined,
         line_items: validLineItems,
-        total_cents: total,
+        total_cents: totals.totalCents,
         // Sending is a separate explicit action on the quote detail page.
         status: 'draft',
       });
@@ -419,10 +412,7 @@ export function QuoteFormWithCustomerSelect({
       </div>
 
       {/* Total */}
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-        <span className="font-medium">Total</span>
-        <span className="text-2xl font-bold">{formatCents(totalCents)}</span>
-      </div>
+      <MoneyTotal totals={totals} emphasizeInvalid />
 
       {/* Actions */}
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 sm:gap-3">

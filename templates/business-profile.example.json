@@ -37,6 +37,9 @@
   "operations": {
     "adminActorId": "admin_user"
   },
+  "pricing": {
+    "taxRateBps": 0
+  },
   "defaults": {
     "websiteUrl": "https://example.com",
     "smsPhoneE164": "+15551234567",

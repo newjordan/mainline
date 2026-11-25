@@ -1,40 +1,20 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { normalizeSearchTerm } from '@/lib/documents/listing-utils';
 
 /**
- * Tests for PostgREST filter injection prevention
- * 
- * The search function strips special characters (,.:() ) that could
- * be used to inject additional filter clauses into the .or() syntax.
+ * PostgREST `.or()` filters treat commas, dots, and parentheses as syntax.
+ * Search terms are normalized before they are interpolated.
  */
 describe('search injection prevention', () => {
-  it('strips comma delimiters from search terms', () => {
-    const malicious = 'test,id.eq.uuid';
-    const sanitized = malicious.replace(/[,.:()]/g, '');
-    assert.equal(sanitized, 'testidequuid');
+  it('strips filter syntax from search terms', () => {
+    assert.equal(normalizeSearchTerm('test,id.eq.uuid'), 'test id eq uuid');
+    assert.equal(normalizeSearchTerm('name.eq.admin'), 'name eq admin');
+    assert.equal(normalizeSearchTerm('test(or(id.eq.1))'), 'test or id eq 1');
+    assert.equal(normalizeSearchTerm('id:12345'), 'id 12345');
   });
 
-  it('strips period operators from search terms', () => {
-    const malicious = 'name.eq.admin';
-    const sanitized = malicious.replace(/[,.:()]/g, '');
-    assert.equal(sanitized, 'nameeqadmin');
-  });
-
-  it('strips parentheses from search terms', () => {
-    const malicious = 'test(or(id.eq.1))';
-    const sanitized = malicious.replace(/[,.:()]/g, '');
-    assert.equal(sanitized, 'testorideq1');
-  });
-
-  it('strips colons from search terms', () => {
-    const malicious = 'id:12345';
-    const sanitized = malicious.replace(/[,.:()]/g, '');
-    assert.equal(sanitized, 'id12345');
-  });
-
-  it('preserves safe characters', () => {
-    const safe = 'John Smith @email 555-1234';
-    const sanitized = safe.replace(/[,.:()]/g, '');
-    assert.equal(sanitized, 'John Smith @email 555-1234');
+  it('preserves ordinary name and phone text', () => {
+    assert.equal(normalizeSearchTerm('John Smith 555-1234'), 'John Smith 555-1234');
   });
 });

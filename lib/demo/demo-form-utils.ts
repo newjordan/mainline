@@ -1,4 +1,5 @@
 import type { InvoiceLineItem, QuoteLineItem } from '@/lib/database.types';
+import { parseAmountToCents as parseAmountToCentsExact } from '@/lib/documents/calculations';
 
 export interface DemoEditableLineItem {
   description: string;
@@ -6,9 +7,7 @@ export interface DemoEditableLineItem {
 }
 
 export function parseAmountToCents(value: string): number {
-  const amount = Number.parseFloat(value);
-  if (!Number.isFinite(amount)) return 0;
-  return Math.round(amount * 100);
+  return parseAmountToCentsExact(value);
 }
 
 export function isAdjustmentNoteRequired(

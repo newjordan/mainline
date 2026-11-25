@@ -5,6 +5,9 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, FileText, User, DollarSign, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MoneyTotal } from '@/components/documents/money-total';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals, parseAmountToCents } from '@/lib/documents/calculations';
 import { formatCents } from '@/lib/utils/format-currency';
 import { formatPhoneNumber } from '@/lib/utils/format-phone';
 import {
@@ -57,12 +60,6 @@ function NewInvoiceContent() {
   const [quoteJobDescription, setQuoteJobDescription] = useState<string>('');
   const [adjustmentNote, setAdjustmentNote] = useState<string>('');
 
-  const parseAmountToCents = (value: string): number => {
-    const amount = Number.parseFloat(value);
-    if (!Number.isFinite(amount)) return 0;
-    return Math.round(amount * 100);
-  };
-
   const sanitizeAmountInput = (value: string, allowNegative = false): string => {
     let sanitized = '';
     let hasDot = false;
@@ -100,10 +97,8 @@ function NewInvoiceContent() {
       amount_cents: parseAmountToCents(item.amount_input),
     }))
     .filter((item) => item.description && item.amount_cents !== 0) as InvoiceLineItem[];
-  const manualTotalCents = manualLineItemsParsed.reduce(
-    (sum, item) => sum + item.amount_cents,
-    0
-  );
+  const manualTotals = calculateDocumentTotals(manualLineItemsParsed, getTaxRateBps());
+  const manualTotalCents = manualTotals.totalCents;
   const isFromQuote = !!quoteId;
 
   useEffect(() => {
@@ -721,12 +716,7 @@ function NewInvoiceContent() {
         </div>
 
         {/* Total Preview */}
-        <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-          <span className="font-medium">Invoice Total</span>
-          <span className={`text-2xl font-bold ${manualTotalCents <= 0 ? 'text-destructive' : ''}`}>
-            {formatCents(manualTotalCents)}
-          </span>
-        </div>
+        <MoneyTotal totals={manualTotals} label="Invoice Total" emphasizeInvalid />
 
         {/* Status Note */}
         <div className="rounded-lg bg-muted/50 p-4 text-sm">

@@ -1,6 +1,8 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { requireAdminSession } from '@/lib/require-admin-session';
+import { normalizeSearchTerm } from '@/lib/documents/listing-utils';
 import { extractInvoiceRefToken } from '@/lib/utils/invoice-reference';
 import type { ActionResult } from '@/types';
 
@@ -64,8 +66,12 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export async function globalSearch(
   query: string
 ): Promise<ActionResult<SearchResults>> {
-  // Require minimum 2 characters
-  if (!query || query.trim().length < 2) {
+  const authResult = await requireAdminSession();
+  if (!authResult.success) return authResult;
+
+  const searchTerm = normalizeSearchTerm(query);
+  // Require minimum 2 characters after filter-syntax stripping.
+  if (searchTerm.length < 2) {
     return {
       success: true,
       data: { customers: [], quotes: [], invoices: [], messages: [] },
@@ -73,18 +79,7 @@ export async function globalSearch(
   }
 
   const supabase = await createClient();
-  const searchTerm = query.trim();
-  
-  // Sanitize PostgREST filter syntax special characters to prevent injection
-  // Strip: , . ( ) : which have meaning in PostgREST filter strings
-  const sanitizedTerm = searchTerm.replace(/[,.:()]/g, '');
-  
-  // Escape LIKE/ILIKE special characters to prevent pattern injection
-  const escapedTerm = sanitizedTerm
-    .replace(/\\/g, '\\\\')
-    .replace(/%/g, '\\%')
-    .replace(/_/g, '\\_');
-  const searchPattern = `%${escapedTerm}%`;
+  const searchPattern = `%${searchTerm}%`;
   const invoiceRefToken = extractInvoiceRefToken(searchTerm);
 
   try {

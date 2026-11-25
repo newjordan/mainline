@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 import { validatePasswordPolicy } from '@/lib/password-policy';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,13 +35,28 @@ export function UpdatePasswordForm({
       return;
     }
 
-    const supabase = createClient();
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
-      // Redirect to dashboard after password update
+      const response = await fetch('/api/auth/update-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        let message = 'Unable to update the password.';
+        try {
+          const body = (await response.json()) as { error?: unknown };
+          if (typeof body.error === 'string' && body.error.trim().length > 0) {
+            message = body.error;
+          }
+        } catch {
+          // Keep the fallback message when the response is not JSON.
+        }
+        throw new Error(message);
+      }
+
       router.push('/customers');
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred');

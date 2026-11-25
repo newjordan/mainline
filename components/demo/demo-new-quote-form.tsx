@@ -9,16 +9,17 @@ import { DemoCustomerSelect } from '@/components/demo/demo-customer-select';
 import { Button } from '@/components/ui/button';
 import {
   normalizeEditableLineItems,
-  parseAmountToCents,
   sanitizeAmountInput,
   toEditableLineItems,
 } from '@/lib/demo/demo-form-utils';
+import { MoneyTotal } from '@/components/documents/money-total';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
 import {
   buildDemoNewCustomerPath,
   buildDemoQuoteDocumentPath,
   buildDemoQuotesHref,
 } from '@/lib/demo-paths';
-import { formatCents } from '@/lib/utils/format-currency';
 import { formatPhoneNumber } from '@/lib/utils/format-phone';
 
 const DEFAULT_DESCRIPTION = 'Priority diagnostics and repair plan for intermittent shutdown.';
@@ -43,8 +44,8 @@ export function DemoNewQuoteForm({
   );
 
   const customerLabel = customer?.name || (customer ? formatPhoneNumber(customer.phone_number) : 'Demo customer');
-  const totalCents = useMemo(
-    () => lineItems.reduce((sum, item) => sum + parseAmountToCents(item.amount_input), 0),
+  const totals = useMemo(
+    () => calculateDocumentTotals(normalizeEditableLineItems(lineItems), getTaxRateBps()),
     [lineItems]
   );
 
@@ -65,7 +66,7 @@ export function DemoNewQuoteForm({
     if (normalizeEditableLineItems(lineItems).length === 0) {
       return toast.error('Please add at least one line item with a non-zero amount'), false;
     }
-    if (totalCents <= 0) return toast.error('Quote total must be greater than $0.00'), false;
+    if (totals.totalCents <= 0) return toast.error('Quote total must be greater than $0.00'), false;
     return true;
   };
 
@@ -151,12 +152,9 @@ export function DemoNewQuoteForm({
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <p className="font-medium">Total</p>
-          <p className="text-2xl font-bold">{formatCents(totalCents)}</p>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
+      <div className="space-y-2">
+        <MoneyTotal totals={totals} />
+        <p className="text-xs text-muted-foreground">
           Save and send are simulated on this screen so you can test the full line-item editing flow.
         </p>
         <Link
