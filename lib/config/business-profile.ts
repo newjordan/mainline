@@ -39,6 +39,10 @@ export interface BusinessProfile {
   operations: {
     adminActorId: string;
   };
+  pricing: {
+    /** Sales tax in basis points. 825 = 8.25%. 0 disables tax. */
+    taxRateBps: number;
+  };
   defaults: {
     websiteUrl: string;
     smsPhoneE164: string;
@@ -98,6 +102,9 @@ const FALLBACK_PROFILE: BusinessProfile = {
   },
   operations: {
     adminActorId: 'admin_user',
+  },
+  pricing: {
+    taxRateBps: 0,
   },
   defaults: {
     websiteUrl: 'https://example.com',
@@ -171,6 +178,18 @@ function asEmailList(value: unknown, fallback: string[]): string[] {
     .filter((entry) => entry.length > 0);
 
   return emails.length > 0 ? Array.from(new Set(emails)) : fallback;
+}
+
+function asTaxRateBps(value: unknown, fallback: number): number {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    return fallback;
+  }
+
+  if (value < 0 || value > 10000) {
+    return fallback;
+  }
+
+  return value;
 }
 
 function asActorId(value: unknown, fallback: string): string {
@@ -250,6 +269,12 @@ function resolveProfile(input: DeepPartial<BusinessProfile>): BusinessProfile {
         FALLBACK_PROFILE.operations.adminActorId
       ),
     },
+    pricing: {
+      taxRateBps: asTaxRateBps(
+        input.pricing?.taxRateBps,
+        FALLBACK_PROFILE.pricing.taxRateBps
+      ),
+    },
     defaults: {
       websiteUrl: asUrl(input.defaults?.websiteUrl, FALLBACK_PROFILE.defaults.websiteUrl),
       smsPhoneE164: asPhone(
@@ -276,6 +301,11 @@ const resolvedProfile = resolveProfile(rawProfile as DeepPartial<BusinessProfile
 
 export function getBusinessProfile(): BusinessProfile {
   return resolvedProfile;
+}
+
+/** Sales tax used by quote and invoice totals. Configured on the business profile. */
+export function getTaxRateBps(): number {
+  return getBusinessProfile().pricing.taxRateBps;
 }
 
 export function interpolateBusinessText(

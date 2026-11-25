@@ -25,6 +25,32 @@ import {
   interpolateBusinessText,
 } from '@/lib/config/business-profile';
 
+const defaultTwilioWebhookDeps = {
+  validateTwilioSignature,
+  sendSMS,
+  findOrCreateCustomer,
+  updateSmsConsent,
+  updateConversationStage,
+  createMessage,
+  ensureStoredMediaReference,
+  markWebhookProcessed,
+  unmarkWebhookProcessed,
+  findQuoteByConfirmationCode,
+  getPendingQuotesForCustomer,
+  acceptQuoteWithAudit,
+};
+
+let twilioWebhookDeps = { ...defaultTwilioWebhookDeps };
+
+export const __twilioWebhookTestUtils = {
+  setDeps(overrides: Partial<typeof defaultTwilioWebhookDeps>): void {
+    twilioWebhookDeps = { ...defaultTwilioWebhookDeps, ...overrides };
+  },
+  resetDeps(): void {
+    twilioWebhookDeps = { ...defaultTwilioWebhookDeps };
+  },
+};
+
 function normalizePhoneForComparison(phone: string): string {
   return phone.replace(/\D/g, '');
 }
@@ -66,7 +92,7 @@ async function notifyAdminOfInboundMessage(params: {
     `Open: ${customerUrl}\n` +
     `Shared SMS alert thread: use app for per-customer threads.`;
 
-  const smsResult = await sendSMS(adminPhone, notification);
+  const smsResult = await twilioWebhookDeps.sendSMS(adminPhone, notification);
   if (!smsResult.success) {
     console.error('[Webhook] Failed to notify admin of inbound message:', smsResult.error);
   }
@@ -136,12 +162,12 @@ async function sendAndLog(
   phoneNumber: string,
   body: string
 ): Promise<void> {
-  const sendResult = await sendSMS(phoneNumber, body);
+  const sendResult = await twilioWebhookDeps.sendSMS(phoneNumber, body);
   if (!sendResult.success) {
     console.error('[Webhook] Failed to send SMS:', sendResult.error);
   }
 
-  const messageResult = await createMessage({
+  const messageResult = await twilioWebhookDeps.createMessage({
     customer_id: customerId,
     direction: 'outbound',
     body,
@@ -188,7 +214,7 @@ export async function POST(request: NextRequest) {
   const webhookUrl = request.url;
 
   // 4. Validate signature FIRST - reject if invalid
-  if (!validateTwilioSignature(signature, webhookUrl, params)) {
+  if (!twilioWebhookDeps.validateTwilioSignature(signature, webhookUrl, params)) {
     console.error('[Webhook] Invalid Twilio signature');
     return new NextResponse('Invalid signature', { status: 403 });
   }
@@ -220,7 +246,7 @@ export async function POST(request: NextRequest) {
 
   // 6. Claim idempotency slot (single-query check+mark to avoid race conditions)
   try {
-    const claimed = await markWebhookProcessed('twilio', MessageSid, 'message.received');
+    const claimed = await twilioWebhookDeps.markWebhookProcessed('twilio', MessageSid, 'message.received');
     if (!claimed) {
       console.log(`[Webhook] Already processed: ${MessageSid}`);
       return new NextResponse('OK', { status: 200 });
@@ -236,10 +262,10 @@ export async function POST(request: NextRequest) {
     const maskedPhone = From.slice(0, -4).replace(/\d/g, '*') + From.slice(-4);
 
     // 8. Find or create customer by phone number
-    const customerResult = await findOrCreateCustomer(From);
+    const customerResult = await twilioWebhookDeps.findOrCreateCustomer(From);
     if (!customerResult.success) {
       console.error('[Webhook] Failed to find/create customer:', customerResult.error);
-      await unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
+      await twilioWebhookDeps.unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
         console.error('[Webhook] Failed to release idempotency marker:', unmarkError);
       });
       return new NextResponse('Internal error', { status: 500 });
@@ -252,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     const storedMediaRefs = await Promise.all(
       inboundMedia.map(async (media) => {
-        const mediaResult = await ensureStoredMediaReference({
+        const mediaResult = await twilioWebhookDeps.ensureStoredMediaReference({
           customerId: customer.id,
           mediaUrl: media.url,
           source: 'inbound_message',
@@ -271,7 +297,7 @@ export async function POST(request: NextRequest) {
     );
 
     // 9. Create inbound message record (always log incoming messages)
-    const messageResult = await createMessage({
+    const messageResult = await twilioWebhookDeps.createMessage({
       customer_id: customer.id,
       direction: 'inbound',
       body: Body,
@@ -282,7 +308,7 @@ export async function POST(request: NextRequest) {
 
     if (!messageResult.success) {
       console.error('[Webhook] Failed to create message:', messageResult.error);
-      await unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
+      await twilioWebhookDeps.unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
         console.error('[Webhook] Failed to release idempotency marker:', unmarkError);
       });
       return new NextResponse('Internal error', { status: 500 });
@@ -300,7 +326,7 @@ export async function POST(request: NextRequest) {
     // 10. Handle STOP keyword (always process, even if not opted in)
     if (isOptOutKeyword(Body)) {
       console.log(`[Webhook] STOP received from ${maskedPhone}`);
-      await updateSmsConsent(customer.id, false);
+      await twilioWebhookDeps.updateSmsConsent(customer.id, false);
       await sendAndLog(customer.id, From, SMS_OPT_OUT_CONFIRMED);
       return new NextResponse('OK', { status: 200 });
     }
@@ -315,8 +341,8 @@ export async function POST(request: NextRequest) {
     // 12. Handle START keyword (opt-in)
     if (isOptInKeyword(Body)) {
       console.log(`[Webhook] START received from ${maskedPhone}`);
-      await updateSmsConsent(customer.id, true);
-      await updateConversationStage(customer.id, 'awaiting_problem');
+      await twilioWebhookDeps.updateSmsConsent(customer.id, true);
+      await twilioWebhookDeps.updateConversationStage(customer.id, 'awaiting_problem');
       await sendAndLog(customer.id, From, SMS_OPT_IN_CONFIRMED);
       return new NextResponse('OK', { status: 200 });
     }
@@ -340,13 +366,13 @@ export async function POST(request: NextRequest) {
 
     if (confirmationCode) {
       // User sent "YES 1234" - find quote by confirmation code
-      const quoteResult = await findQuoteByConfirmationCode(customer.id, confirmationCode);
+      const quoteResult = await twilioWebhookDeps.findQuoteByConfirmationCode(customer.id, confirmationCode);
 
       if (quoteResult.success && quoteResult.data) {
         const quote = quoteResult.data;
 
         // Accept the quote with audit logging
-        const acceptResult = await acceptQuoteWithAudit(
+        const acceptResult = await twilioWebhookDeps.acceptQuoteWithAudit(
           quote.id,
           'customer',
           customer.id,
@@ -377,7 +403,7 @@ export async function POST(request: NextRequest) {
       }
     } else if (isPlainYes(Body)) {
       // User sent just "YES" without code - handle based on pending quote count
-      const pendingResult = await getPendingQuotesForCustomer(customer.id);
+      const pendingResult = await twilioWebhookDeps.getPendingQuotesForCustomer(customer.id);
 
       if (!pendingResult.success) {
         console.error('[Webhook] Failed to get pending quotes:', pendingResult.error);
@@ -390,7 +416,7 @@ export async function POST(request: NextRequest) {
           // Exactly 1 pending quote - auto-accept
           const quote = pendingQuotes[0];
 
-          const acceptResult = await acceptQuoteWithAudit(
+          const acceptResult = await twilioWebhookDeps.acceptQuoteWithAudit(
             quote.id,
             'customer',
             customer.id,
@@ -431,7 +457,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse('OK', { status: 200 });
   } catch (error) {
     console.error('[Webhook] Unexpected error:', error);
-    await unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
+    await twilioWebhookDeps.unmarkWebhookProcessed('twilio', MessageSid).catch((unmarkError) => {
       console.error('[Webhook] Failed to release idempotency marker:', unmarkError);
     });
     return new NextResponse('Internal error', { status: 500 });

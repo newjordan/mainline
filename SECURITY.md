@@ -35,6 +35,19 @@ Helpful reports usually include:
 - whether real third-party credentials are involved
 - logs, stack traces, or screenshots with secrets redacted
 
+## Review Notes
+
+These controls were tightened during a quality review of the public codebase:
+
+- Credential routes (`/api/auth/login`, `/api/auth/sign-up`, `/api/auth/forgot-password`) are reachable without an existing session. They rate-limit requests, validate email and password input, and do not echo provider errors that can be used to list accounts.
+- Sign-up enforces the password policy on the server and rejects addresses that are not in `ALLOWED_EMAILS`.
+- Password reset returns the same success response for unapproved addresses and does not call the provider for them.
+- Password changes go through `/api/auth/update-password`, which requires an approved session and checks the password policy before the account is updated.
+- Quote and invoice totals are recomputed from line items and `pricing.taxRateBps`. A client-supplied total that does not match is rejected for quotes.
+- Database policies no longer grant every authenticated user full access. `supabase/migrations/00002_restrict_authenticated_access.sql` limits row access to emails in `admin_allowlist`, which the app fills from `ALLOWED_EMAILS`. Apply that migration on existing projects.
+- Search terms strip PostgREST filter characters before they are interpolated.
+- `MESSAGING_PROVIDER=mock` and demo mode record outbound texts in memory. Tests use that path and injected providers so they do not contact Twilio.
+
 ## Secret Handling
 
 Never include live secrets in reports, issues, screenshots, or commits.

@@ -6,6 +6,23 @@ import {
 } from '@/lib/services/payment-reminders';
 import { timingSafeCompare } from '@/lib/timing-safe-compare';
 
+const defaultReminderDeps = {
+  getInvoicesNeedingReminder,
+  sendReminder,
+  markInvoiceOverdue,
+};
+
+let reminderDeps = { ...defaultReminderDeps };
+
+export const __paymentReminderTestUtils = {
+  setDeps(overrides: Partial<typeof defaultReminderDeps>): void {
+    reminderDeps = { ...defaultReminderDeps, ...overrides };
+  },
+  resetDeps(): void {
+    reminderDeps = { ...defaultReminderDeps };
+  },
+};
+
 /**
  * Payment Reminders Cron Job
  *
@@ -38,29 +55,29 @@ export async function GET(request: Request) {
 
   try {
     // Process Day 3 reminders (gentle reminder)
-    const day3Invoices = await getInvoicesNeedingReminder('day3');
+    const day3Invoices = await reminderDeps.getInvoicesNeedingReminder('day3');
     results.day3.found = day3Invoices.length;
 
     for (const invoice of day3Invoices) {
-      const sent = await sendReminder(invoice, 'day3');
+      const sent = await reminderDeps.sendReminder(invoice, 'day3');
       if (sent) {
         results.day3.sent++;
       }
     }
 
     // Process Day 7 reminders (follow-up + mark overdue)
-    const day7Invoices = await getInvoicesNeedingReminder('day7');
+    const day7Invoices = await reminderDeps.getInvoicesNeedingReminder('day7');
     results.day7.found = day7Invoices.length;
 
     for (const invoice of day7Invoices) {
-      const sent = await sendReminder(invoice, 'day7');
+      const sent = await reminderDeps.sendReminder(invoice, 'day7');
       if (sent) {
         results.day7.sent++;
       }
 
       // Mark as overdue regardless of SMS success
       // (invoice is genuinely overdue at this point)
-      const markedOverdue = await markInvoiceOverdue(invoice.id);
+      const markedOverdue = await reminderDeps.markInvoiceOverdue(invoice.id);
       if (markedOverdue) {
         results.day7.markedOverdue++;
       }

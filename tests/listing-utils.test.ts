@@ -44,6 +44,7 @@ describe('listing filter normalization', () => {
 describe('listing helpers', () => {
   it('normalizes search terms safely', () => {
     assert.equal(normalizeSearchTerm('  Abc%123,()  '), 'Abc 123');
+    assert.equal(normalizeSearchTerm('name.eq.admin,id.eq.1'), 'name eq admin id eq 1');
     assert.equal(normalizeSearchTerm(''), '');
   });
 

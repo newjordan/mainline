@@ -3,6 +3,46 @@ import { validateTwilioEnv } from '@/lib/env';
 import type { ActionResult } from '@/types';
 import type { TwilioStatusCallback } from '@/lib/schemas/webhooks/twilio';
 import { getBusinessProfile } from '@/lib/config/business-profile';
+import { isDemoModeEnabled } from '@/lib/demo-mode';
+
+export type MockedOutboundMessage = {
+  to: string;
+  body: string;
+  mediaUrls?: string[];
+};
+
+const mockedOutboundMessages: MockedOutboundMessage[] = [];
+
+/**
+ * Demo mode and MESSAGING_PROVIDER=mock never contact Twilio.
+ * Set MESSAGING_PROVIDER=twilio to force the live client even in demo mode.
+ */
+export function shouldMockMessaging(): boolean {
+  const provider = process.env.MESSAGING_PROVIDER?.trim().toLowerCase();
+  if (provider === 'twilio') return false;
+  if (provider === 'mock') return true;
+  return isDemoModeEnabled();
+}
+
+function recordMockedMessage(
+  to: string,
+  body: string,
+  mediaUrls?: string[]
+): ActionResult<string> {
+  mockedOutboundMessages.push({ to, body, mediaUrls });
+  const sid = `SM_MOCK_${String(mockedOutboundMessages.length).padStart(4, '0')}`;
+  console.log(`[Messaging] Mock message recorded for ${to}, SID: ${sid}`);
+  return { success: true, data: sid };
+}
+
+export const __messagingTestUtils = {
+  outbox(): MockedOutboundMessage[] {
+    return mockedOutboundMessages.map((message) => ({ ...message }));
+  },
+  reset(): void {
+    mockedOutboundMessages.length = 0;
+  },
+};
 
 // Lazy-loaded Twilio client (initialized on first use)
 let twilioClient: twilio.Twilio | null = null;
@@ -100,6 +140,10 @@ export async function sendSMS(
     return { success: false, error: 'Recipient phone number is invalid (must be E.164 format).' };
   }
 
+  if (shouldMockMessaging()) {
+    return recordMockedMessage(normalizedTo, body);
+  }
+
   try {
     const client = getClient();
     const message = await client.messages.create({
@@ -133,6 +177,10 @@ export async function sendMMS(
   const normalizedTo = normalizeToE164(to);
   if (!E164_REGEX.test(normalizedTo)) {
     return { success: false, error: 'Recipient phone number is invalid (must be E.164 format).' };
+  }
+
+  if (shouldMockMessaging()) {
+    return recordMockedMessage(normalizedTo, body, [mediaUrl]);
   }
 
   try {
@@ -169,6 +217,10 @@ export async function sendMessage(
   const normalizedTo = normalizeToE164(to);
   if (!E164_REGEX.test(normalizedTo)) {
     return { success: false, error: 'Recipient phone number is invalid (must be E.164 format).' };
+  }
+
+  if (shouldMockMessaging()) {
+    return recordMockedMessage(normalizedTo, body, mediaUrls);
   }
 
   try {

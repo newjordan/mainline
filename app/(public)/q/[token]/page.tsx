@@ -5,6 +5,8 @@ import { validateQuoteToken } from '@/lib/utils/quote-tokens';
 import { logQuoteEvent } from '@/lib/utils/audit-log';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { formatCents } from '@/lib/utils/format-currency';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
 import { formatPhoneNumber } from '@/lib/utils/format-phone';
 import type { QuoteLineItem } from '@/lib/database.types';
 import { PrintButton } from '@/components/quotes/print-button';
@@ -80,6 +82,15 @@ export default async function PublicQuotePage({ params }: PublicQuotePageProps) 
     quote.service_address?.trim() || customer?.address?.trim() || null;
 
   const lineItems = (quote.line_items as QuoteLineItem[]) || [];
+  let taxSummary: { subtotalCents: number; taxCents: number; taxRateBps: number } | null = null;
+  try {
+    const priced = calculateDocumentTotals(lineItems, getTaxRateBps());
+    if (priced.taxCents !== 0 && priced.totalCents === quote.total_cents) {
+      taxSummary = priced;
+    }
+  } catch {
+    taxSummary = null;
+  }
   const formattedDate = new Date(quote.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -251,6 +262,24 @@ export default async function PublicQuotePage({ params }: PublicQuotePageProps) 
                     ))}
                   </tbody>
                   <tfoot>
+                    {taxSummary ? (
+                      <>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-slate-600">Subtotal</td>
+                          <td className="px-4 py-2 text-right text-sm text-slate-900">
+                            {formatCents(taxSummary.subtotalCents)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-2 text-sm text-slate-600">
+                            Tax ({(taxSummary.taxRateBps / 100).toFixed(2)}%)
+                          </td>
+                          <td className="px-4 py-2 text-right text-sm text-slate-900">
+                            {formatCents(taxSummary.taxCents)}
+                          </td>
+                        </tr>
+                      </>
+                    ) : null}
                     <tr className="bg-slate-800 text-white">
                       <td className="px-4 py-4 text-lg font-semibold">Total</td>
                       <td className="whitespace-nowrap px-4 py-4 text-right text-2xl font-bold">

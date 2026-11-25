@@ -1,67 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAllowedEmail } from '@/lib/allowed-emails';
+import { ensureAdminAllowlist } from '@/lib/server/admin-allowlist';
 import { getSafeNextPath } from '@/lib/safe-redirect';
 import { shouldBlockSetupWizardPath } from '@/lib/setup-wizard/web-access';
 import { mergeHardenedCookieOptions } from '@/lib/supabase/cookie-options';
-
-/**
- * Route protection configuration
- *
- * Public paths: No authentication required
- * Auth paths: Authentication pages (login, sign-up, etc.)
- * Webhook paths: Signature-validated, no session auth
- * All other paths: Require authentication (dashboard routes)
- */
-const PUBLIC_PATHS = [
-  '/', // Landing page (public route group)
-  '/payment-success', // Payment confirmation page
-  '/privacy', // Privacy Policy page
-  '/terms', // Terms of Service page
-  '/sms-opt-in', // SMS opt-in CTA page
-  '/api/auth/check-access', // Access-check endpoint (handles auth state itself)
-];
-
-const PUBLIC_PATH_PREFIXES = [
-  '/q/', // Public quote view (token-based)
-  '/api/cron/', // Cron jobs
-];
-
-const AUTH_PATH_PREFIX = '/auth';
-const WEBHOOK_PATH_PREFIX = '/api/webhooks';
-
-/**
- * Check if a path should skip authentication
- */
-function isPublicPath(pathname: string): boolean {
-  // Setup wizard stays public only in local/dev for first-time onboarding.
-  if (pathname === '/setup-wizard') {
-    return !shouldBlockSetupWizardPath(pathname);
-  }
-
-  // Exact match for public paths
-  if (PUBLIC_PATHS.includes(pathname)) {
-    return true;
-  }
-
-  // Public path prefixes (quote view, cron, etc.)
-  for (const prefix of PUBLIC_PATH_PREFIXES) {
-    if (pathname.startsWith(prefix)) {
-      return true;
-    }
-  }
-
-  // Auth routes (login, sign-up, forgot-password, etc.)
-  if (pathname.startsWith(AUTH_PATH_PREFIX)) {
-    return true;
-  }
-
-  // Webhook routes (Twilio, Square - use signature validation instead)
-  if (pathname.startsWith(WEBHOOK_PATH_PREFIX)) {
-    return true;
-  }
-
-  return false;
-}
+import { isPublicPath } from '@/lib/supabase/public-paths';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -150,6 +94,10 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user?.email && isAllowedEmail(user.email)) {
+    await ensureAdminAllowlist(user.email);
+  }
 
   const pathname = request.nextUrl.pathname;
 

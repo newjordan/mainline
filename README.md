@@ -44,8 +44,8 @@ MainLine is an **open-source text-to-payment system** for field contractors and 
 | Dashboard | Customer Queue |
 | :---: | :---: |
 | ![Dashboard](docs/screenshots/desktop/03-dashboard-home-desktop.png) | ![Customer queue](docs/screenshots/desktop/04-customers-desktop.png) |
-| **Quote Document** | **Mobile Dashboard** |
-| ![Quote document](docs/screenshots/desktop/18-quote-document-desktop.png) | ![Mobile dashboard](docs/screenshots/mobile/03-dashboard-home-mobile.png) |
+| **Quote Document** | **Invoice Document** |
+| ![Quote document](docs/screenshots/desktop/18-quote-document-desktop.png) | ![Invoice document](docs/screenshots/desktop/19-invoice-document-desktop.png) |
 
 > Browse the full product storyboard in <a href="docs/screenshots" target="_blank" rel="noopener noreferrer"><code>docs/screenshots</code></a>.
 
@@ -57,7 +57,7 @@ MainLine is an **open-source text-to-payment system** for field contractors and 
 
 **Live demo →** <a href="https://mainline-drab.vercel.app" target="_blank" rel="noopener noreferrer">mainline-drab.vercel.app</a>
 
-**Run locally** — sample customers, messages, quotes, invoices, and photos included:
+**Run locally** — seeded customers, messages, quotes, invoices, and photos. No texts are sent.
 
 ```bash
 git clone https://github.com/newjordan/mainline.git
@@ -67,6 +67,8 @@ npm run demo
 ```
 
 Then open <a href="http://localhost:3000/demo/login" target="_blank" rel="noopener noreferrer"><code>http://localhost:3000/demo/login</code></a>.
+
+`npm run demo` sets `DEMO_MODE`, `NEXT_PUBLIC_DEMO_MODE`, and `MESSAGING_PROVIDER=mock`. The dashboard is filled from `lib/demo/demo-data.ts`. Quote and invoice totals in that seed match the shared tax and rounding helpers.
 
 ### Prerequisites
 
@@ -103,7 +105,9 @@ That's it. No Supabase, Twilio, or payment keys needed.
 
 > Set `PAYMENT_PROVIDER=none` if you do not want online payments.
 >
-> `ALLOWED_EMAILS` controls dashboard access. If empty, access fails closed.
+> `ALLOWED_EMAILS` controls dashboard access. If empty, access fails closed. Apply `supabase/migrations` on a live database, including `00002_restrict_authenticated_access.sql`, so direct database access follows that same allowlist.
+>
+> Sales tax is `pricing.taxRateBps` in `config/business-profile.json` (825 = 8.25%). `0` charges the line-item sum. Quote and invoice saves recompute the total on the server.
 
 ### Environment Notes
 
@@ -122,7 +126,8 @@ That's it. No Supabase, Twilio, or payment keys needed.
 | `npm run demo` | Start the local demo experience |
 | `npm run build` | Create a production build (requires live env vars, or set `DEMO_MODE=true`) |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run the test suite |
+| `npm run typecheck` | Run the TypeScript checker |
+| `npm test` | Run the test suite, including quote/invoice math and mocked API routes |
 | `npm run wizard:setup` | Guided setup flow |
 | `npm run wizard:setup -- --doctor` | Re-check and repair config |
 | `npm run template:import -- <file>` | Import a business profile template |

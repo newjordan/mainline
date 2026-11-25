@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { updateQuoteWithVersioning } from '@/lib/actions/quotes';
-import { formatCents } from '@/lib/utils/format-currency';
+import { MoneyTotal } from '@/components/documents/money-total';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals, parseAmountToCents } from '@/lib/documents/calculations';
 import type { Quote, QuoteLineItem } from '@/lib/database.types';
 import { Button } from '@/components/ui/button';
 
@@ -17,12 +19,6 @@ interface EditQuoteFormProps {
 interface EditableLineItem {
   description: string;
   amount_input: string;
-}
-
-function parseAmountToCents(value: string): number {
-  const amount = Number.parseFloat(value);
-  if (!Number.isFinite(amount)) return 0;
-  return Math.round(amount * 100);
 }
 
 function sanitizeAmountInput(value: string): string {
@@ -83,7 +79,7 @@ export function EditQuoteForm({ quote }: EditQuoteFormProps) {
   const validLineItems = parsedItems.filter(
     (item) => item.description.length > 0 && item.amount_cents !== 0
   );
-  const totalCents = validLineItems.reduce((sum, item) => sum + item.amount_cents, 0);
+  const totals = calculateDocumentTotals(validLineItems, getTaxRateBps());
 
   const addLineItem = () => {
     setLineItems((prev) => [...prev, { description: '', amount_input: '' }]);
@@ -121,7 +117,7 @@ export function EditQuoteForm({ quote }: EditQuoteFormProps) {
       return;
     }
 
-    if (totalCents <= 0) {
+    if (totals.totalCents <= 0) {
       toast.error('Quote total must be greater than $0.00');
       return;
     }
@@ -132,7 +128,7 @@ export function EditQuoteForm({ quote }: EditQuoteFormProps) {
       const result = await updateQuoteWithVersioning(quote.id, {
         description: description.trim(),
         line_items: validLineItems,
-        total_cents: totalCents,
+        total_cents: totals.totalCents,
       });
 
       if (!result.success) {
@@ -246,12 +242,7 @@ export function EditQuoteForm({ quote }: EditQuoteFormProps) {
         </button>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
-        <span className="font-medium">Total</span>
-        <span className={`text-2xl font-bold ${totalCents <= 0 ? 'text-destructive' : ''}`}>
-          {formatCents(totalCents)}
-        </span>
-      </div>
+      <MoneyTotal totals={totals} emphasizeInvalid />
 
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Button asChild variant="outline" className="w-full">

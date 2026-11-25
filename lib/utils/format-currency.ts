@@ -1,3 +1,5 @@
+import { dollarsToCents } from '@/lib/documents/calculations';
+
 /**
  * Format cents as USD currency string
  * @param cents - Amount in cents (e.g., 1500 = $15.00)
@@ -26,5 +28,6 @@ export function formatDollars(dollars: number): string {
 export function parseToCents(value: string): number {
   const cleaned = value.replace(/[^0-9.-]/g, '');
   const dollars = parseFloat(cleaned);
-  return Math.round(dollars * 100);
+  if (!Number.isFinite(dollars)) return 0;
+  return dollarsToCents(dollars);
 }

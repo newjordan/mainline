@@ -44,7 +44,9 @@ export function normalizeSearchTerm(value?: string | string[] | null): string {
   if (!raw) return '';
   const trimmed = raw.trim();
   if (!trimmed) return '';
-  return trimmed.replace(/[,%()]/g, ' ').slice(0, 60).trim();
+  // Strip PostgREST filter syntax and LIKE wildcards before the term is
+  // interpolated into an `.or()` / `ilike` filter.
+  return trimmed.replace(/[,%()_.:\\'"]/g, ' ').replace(/\s+/g, ' ').slice(0, 60).trim();
 }
 
 export function normalizeListLimit(value?: string | string[]): number {

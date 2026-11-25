@@ -6,12 +6,39 @@ import {
 } from '@/lib/rate-limit';
 import { buildAuthRedirectUrl } from '@/lib/supabase/auth-redirect';
 import { createClient } from '@/lib/supabase/server';
+import { isAllowedEmail } from '@/lib/allowed-emails';
+import { readEmail, readJsonObject } from '@/lib/api/auth-request';
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const limiter = new SlidingWindowRateLimiter({
   maxAttempts: 3,
   windowMs: FIFTEEN_MINUTES_MS,
 });
+
+const GENERIC_RESPONSE = {
+  success: true,
+  message: 'If that email is approved, a reset link is on the way.',
+};
+
+async function sendReset(email: string): Promise<{ error: { message: string } | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: buildAuthRedirectUrl('/auth/update-password'),
+  });
+  return { error: error ? { message: error.message } : null };
+}
+
+const defaultForgotPasswordDeps = { sendReset };
+let forgotPasswordDeps = { ...defaultForgotPasswordDeps };
+
+export const __forgotPasswordTestUtils = {
+  setSendReset(nextSendReset: typeof sendReset): void {
+    forgotPasswordDeps = { sendReset: nextSendReset };
+  },
+  reset(): void {
+    forgotPasswordDeps = { ...defaultForgotPasswordDeps };
+  },
+};
 
 function createRateLimitedResponse(retryAfterSeconds: number) {
   return NextResponse.json(
@@ -41,26 +68,26 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const email =
-    typeof body === 'object' && body !== null && 'email' in body
-      ? String(body.email).trim()
-      : '';
+  const record = readJsonObject(body);
+  const email = record ? readEmail(record) : null;
 
   if (!email) {
-    return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 });
+  }
+
+  // Same response for unknown and unapproved addresses so this route
+  // cannot be used to enumerate accounts.
+  if (!isAllowedEmail(email)) {
+    return NextResponse.json(GENERIC_RESPONSE);
   }
 
   try {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: buildAuthRedirectUrl('/auth/update-password'),
-    });
-
+    const { error } = await forgotPasswordDeps.sendReset(email);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('[Auth Forgot Password API] Reset rejected');
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(GENERIC_RESPONSE);
   } catch (error) {
     console.error('[Auth Forgot Password API] Unexpected error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

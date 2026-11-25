@@ -4,7 +4,12 @@ import type { ActionResult } from '@/types';
 import type { Quote, QuoteInsert } from '@/lib/database.types';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { requireAdminSession } from '@/lib/require-admin-session';
-import { quoteSchema, quoteUpdateSchema, type QuoteInput } from '@/lib/schemas/quote';
+import {
+  quoteLineItemSchema,
+  quoteSchema,
+  quoteUpdateSchema,
+  type QuoteInput,
+} from '@/lib/schemas/quote';
 import {
   createQuoteAccessToken,
   generateConfirmationCode,
@@ -13,10 +18,13 @@ import {
 } from '@/lib/utils/quote-tokens';
 import { logQuoteEvent, maskPhoneForAudit } from '@/lib/utils/audit-log';
 import { formatCents } from '@/lib/utils/format-currency';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
 import {
   getBusinessProfile,
+  getTaxRateBps,
   interpolateBusinessText,
 } from '@/lib/config/business-profile';
+import { z } from 'zod';
 
 /**
  * Validate UUID format
@@ -28,6 +36,36 @@ function isValidUUID(id: string): boolean {
 
 const businessProfile = getBusinessProfile();
 const ADMIN_ACTOR_ID = businessProfile.operations.adminActorId;
+const QUOTE_TOTAL_MISMATCH = 'Quote total does not match line items and tax';
+
+function resolveQuotePricing(
+  lineItems: unknown,
+  claimedTotal?: number
+):
+  | { ok: true; lineItems: QuoteInput['line_items']; totalCents: number }
+  | { ok: false; error: string } {
+  const parsed = z.array(quoteLineItemSchema).min(1).safeParse(lineItems);
+  if (!parsed.success) {
+    return { ok: false, error: 'Quote line items are invalid' };
+  }
+
+  let totals;
+  try {
+    totals = calculateDocumentTotals(parsed.data, getTaxRateBps());
+  } catch {
+    return { ok: false, error: 'Quote line items are invalid' };
+  }
+
+  if (totals.totalCents <= 0) {
+    return { ok: false, error: 'Quote total must be greater than $0.00' };
+  }
+
+  if (claimedTotal !== undefined && claimedTotal !== totals.totalCents) {
+    return { ok: false, error: QUOTE_TOTAL_MISMATCH };
+  }
+
+  return { ok: true, lineItems: parsed.data, totalCents: totals.totalCents };
+}
 
 /**
  * Get all quotes (for list view)
@@ -182,12 +220,17 @@ export async function createQuote(
   try {
     const supabase = createServiceRoleClient();
 
+    const priced = resolveQuotePricing(parsed.data.line_items, parsed.data.total_cents);
+    if (!priced.ok) {
+      return { success: false, error: priced.error };
+    }
+
     const insertData: QuoteInsert = {
       customer_id: parsed.data.customer_id,
       description: parsed.data.description,
       service_address: parsed.data.service_address?.trim() || null,
-      line_items: parsed.data.line_items,
-      total_cents: parsed.data.total_cents,
+      line_items: priced.lineItems,
+      total_cents: priced.totalCents,
       status: parsed.data.status || 'draft',
     };
 
@@ -238,11 +281,44 @@ export async function updateQuote(
     return { success: false, error: 'Invalid quote data' };
   }
 
+  let updatePayload = validation.data;
+  if (updatePayload.line_items !== undefined || updatePayload.total_cents !== undefined) {
+    try {
+      const supabase = createServiceRoleClient();
+      const { data: current, error: fetchError } = await supabase
+        .from('quotes')
+        .select('line_items')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !current) {
+        return { success: false, error: 'Quote not found' };
+      }
+
+      const priced = resolveQuotePricing(
+        updatePayload.line_items ?? current.line_items,
+        updatePayload.total_cents
+      );
+      if (!priced.ok) {
+        return { success: false, error: priced.error };
+      }
+
+      updatePayload = {
+        ...updatePayload,
+        line_items: priced.lineItems,
+        total_cents: priced.totalCents,
+      };
+    } catch (error) {
+      console.error('[Quotes] updateQuote pricing exception:', error);
+      return { success: false, error: 'Failed to update quote' };
+    }
+  }
+
   try {
     const supabase = createServiceRoleClient();
     const { data: quote, error } = await supabase
       .from('quotes')
-      .update(validation.data)
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();
@@ -587,6 +663,17 @@ export async function updateQuoteWithVersioning(
       return { success: false, error: 'Cannot modify archived quote' };
     }
 
+    let nextLineItems = updates.line_items ?? current.line_items;
+    let nextTotalCents = updates.total_cents ?? current.total_cents;
+    if (updates.line_items !== undefined || updates.total_cents !== undefined) {
+      const priced = resolveQuotePricing(nextLineItems, updates.total_cents);
+      if (!priced.ok) {
+        return { success: false, error: priced.error };
+      }
+      nextLineItems = priced.lineItems;
+      nextTotalCents = priced.totalCents;
+    }
+
     // 3. If draft, allow in-place edit
     if (current.status === 'draft') {
       const { data: updated, error: updateError } = await supabase
@@ -597,8 +684,8 @@ export async function updateQuoteWithVersioning(
             updates.service_address === undefined
               ? current.service_address
               : updates.service_address,
-          line_items: updates.line_items ?? current.line_items,
-          total_cents: updates.total_cents ?? current.total_cents,
+          line_items: nextLineItems,
+          total_cents: nextTotalCents,
         })
         .eq('id', id)
         .select()
@@ -624,8 +711,8 @@ export async function updateQuoteWithVersioning(
         updates.service_address === undefined
           ? current.service_address
           : updates.service_address,
-      line_items: updates.line_items ?? current.line_items,
-      total_cents: updates.total_cents ?? current.total_cents,
+      line_items: nextLineItems,
+      total_cents: nextTotalCents,
       status: 'draft', // New version starts as draft
       parent_quote_id: current.id,
     };

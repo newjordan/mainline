@@ -14,6 +14,8 @@
 import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/database.types';
+import { getTaxRateBps } from '@/lib/config/business-profile';
+import { calculateDocumentTotals } from '@/lib/documents/calculations';
 
 type CustomerInsert = Database['public']['Tables']['customers']['Insert'];
 type QuoteInsert = Database['public']['Tables']['quotes']['Insert'];
@@ -276,7 +278,7 @@ async function seedQuotes(customerIds: string[]): Promise<string[]> {
 
   for (const template of quoteTemplates) {
     const customerId = customerIds[template.customerIndex];
-    const totalCents = template.line_items.reduce((sum, item) => sum + item.amount_cents, 0);
+    const totalCents = calculateDocumentTotals(template.line_items, getTaxRateBps()).totalCents;
     const createdAt = new Date(Date.now() - template.daysAgo * 24 * 60 * 60 * 1000);
 
     const quoteData: QuoteInsert = {
@@ -319,7 +321,10 @@ async function seedInvoices(quoteIds: string[], customerIds: string[]) {
     const quoteId = quoteIds[template.quoteIndex];
     const quoteTemplate = quoteTemplates[template.quoteIndex];
     const customerId = customerIds[quoteTemplate.customerIndex];
-    const totalCents = quoteTemplate.line_items.reduce((sum, item) => sum + item.amount_cents, 0);
+    const totalCents = calculateDocumentTotals(
+      quoteTemplate.line_items,
+      getTaxRateBps()
+    ).totalCents;
 
     const createdAt = new Date(Date.now() - template.daysAgo * 24 * 60 * 60 * 1000);
     const sentAt = new Date(createdAt.getTime() + 1 * 60 * 60 * 1000);

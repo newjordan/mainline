@@ -6,6 +6,8 @@ const child = spawn(command, ['run', 'dev'], {
   env: {
     ...process.env,
     DEMO_MODE: 'true',
+    NEXT_PUBLIC_DEMO_MODE: 'true',
+    MESSAGING_PROVIDER: 'mock',
   },
 });
 
